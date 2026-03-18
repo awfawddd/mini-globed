@@ -1,0 +1,35 @@
+{
+    "geode": "5.3.0",
+    "gd": {
+        "win": "2.2081",
+        "android": "2.2074"
+    },
+    "id": "mini-globed.multiplayer",
+    "name": "Mini Globed",
+    "version": "v1.0.0",
+    "developer": "Tu",
+    "description": "Mod multiplayer semplificata per Geometry Dash - progetto didattico",
+    "tags": ["online", "multiplayer", "gameplay"],
+    "settings": {
+        "server-ip": {
+            "name": "Server IP",
+            "description": "Indirizzo IP del server multiplayer",
+            "type": "string",
+            "default": "127.0.0.1"
+        },
+        "server-port": {
+            "name": "Server Port",
+            "description": "Porta del server multiplayer",
+            "type": "int",
+            "default": 4747,
+            "min": 1024,
+            "max": 65535
+        },
+        "player-name": {
+            "name": "Nome giocatore",
+            "description": "Il tuo nome visibile agli altri",
+            "type": "string",
+            "default": "Player"
+        }
+    }
+}
