@@ -34,6 +34,7 @@ jobs:
           combine: true
           target: ${{ matrix.config.target }}
           sdk: v4.6.0
+          cli: v3.4.0
         env:
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
 
