@@ -13,40 +13,65 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: "Android32", target: "Android32", os: ubuntu-latest }
-          - { name: "Android64", target: "Android64", os: ubuntu-latest }
+          - { name: "Android32", abi: "armeabi-v7a", target_id: "android32" }
+          - { name: "Android64", abi: "arm64-v8a", target_id: "android64" }
 
     name: Build ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup NDK 26
+      - name: Setup NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
           ndk-version: r26d
 
-      - name: Lock mod.json to prevent auto-update
+      - name: Install Geode CLI
         run: |
-          echo "Before:"
-          cat mod.json
-          chmod 444 mod.json
+          curl -L "https://github.com/geode-sdk/cli/releases/download/v3.4.0/geode-cli-v3.4.0-linux.zip" -o cli.zip
+          unzip cli.zip -d cli
+          chmod +x cli/geode
+          echo "$PWD/cli" >> $GITHUB_PATH
 
-      - name: Build mod
-        uses: geode-sdk/build-geode-mod@main
-        with:
-          combine: true
-          target: ${{ matrix.config.target }}
-          sdk: v4.6.0
-          cli: v3.4.0
+      - name: Install Geode SDK
+        run: |
+          geode sdk install --path ./geode-sdk
+          cd geode-sdk
+          git checkout v4.6.0
+          geode sdk install-binaries --platform ${{ matrix.config.target_id }}
         env:
-          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          GEODE_SDK: ${{ github.workspace }}/geode-sdk
 
-      - name: Restore mod.json permissions
-        if: always()
-        run: chmod 644 mod.json
+      - name: Verify mod.json
+        run: |
+          echo "mod.json content:"
+          cat mod.json
+          echo "Geode SDK version:"
+          cd geode-sdk && git describe --tags
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=${{ matrix.config.abi }} \
+            -DANDROID_PLATFORM=android-24 \
+            -G Ninja
+        env:
+          GEODE_SDK: ${{ github.workspace }}/geode-sdk
+
+      - name: Build
+        run: cmake --build build --config Release
+        env:
+          GEODE_SDK: ${{ github.workspace }}/geode-sdk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.config.target_id }}
+          path: build/*.geode
 
   package:
     name: Package mod
@@ -54,16 +79,20 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifacts
+      - name: Download Android32
         uses: actions/download-artifact@v4
+        with:
+          name: build-android32
+          path: artifacts
 
-      - name: Combine .geode files
-        uses: geode-sdk/build-geode-mod/combine@main
+      - name: Download Android64
+        uses: actions/download-artifact@v4
+        with:
+          name: build-android64
+          path: artifacts
 
-      - name: Upload final .geode
+      - name: Upload final
         uses: actions/upload-artifact@v4
         with:
           name: mini-globed-android
-          path: "*.geode"
+          path: artifacts/*.geode
