@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: "Windows", target: "Win64", os: windows-latest }
           - { name: "Android32", target: "Android32", os: ubuntu-latest }
           - { name: "Android64", target: "Android64", os: ubuntu-latest }
 
