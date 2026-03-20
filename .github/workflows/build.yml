@@ -74,13 +74,26 @@ jobs:
             -G Ninja
         env:
           GEODE_SDK: ${{ github.workspace }}/geode-sdk
+      - name: List build output
+        run: |
+          echo "=== Build directory ==="
+          find build -type f -name "*.so" -o -name "*.geode" -o -name "*.dll" 2>/dev/null
+          echo "=== All files in build root ==="
+          ls -la build/
+          echo "=== Looking deeper ==="
+          find build -maxdepth 3 -type f | grep -v CMakeFiles | head -30
 
       - name: Package
         run: |
-          ./cli/geode package new . \
-            --binary build/mini-globed.multiplayer.${{ matrix.config.target_id }}.so \
-            --output build/mini-globed.multiplayer.geode || true
-          ls -la build/*.geode build/*.so 2>/dev/null || ls -la build/
+          export PATH="$PWD/cli:$PATH"
+          SO_FILE=$(find build -name "*.so" -type f | head -1)
+          echo "Found SO: $SO_FILE"
+          if [ -n "$SO_FILE" ]; then
+            ./cli/geode package new . \
+              --binary "$SO_FILE" \
+              --output build/mini-globed.multiplayer.geode || true
+          fi
+          ls -la build/*.geode 2>/dev/null || echo "No .geode file created"
         env:
           GEODE_SDK: ${{ github.workspace }}/geode-sdk
 
@@ -91,7 +104,7 @@ jobs:
           path: |
             build/*.geode
             build/*.so
-
+            build/**/*.so
   package:
     name: Package mod
     runs-on: ubuntu-latest
