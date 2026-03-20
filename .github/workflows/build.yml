@@ -1,4 +1,4 @@
-name: Build Mini Globed
+name: Build Mini Globed Android
 
 on:
   push:
@@ -22,11 +22,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup NDK 26
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
           combine: true
           target: ${{ matrix.config.target }}
+          sdk: v4.6.0
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
 
   package:
     name: Package mod
@@ -45,5 +54,5 @@ jobs:
       - name: Upload final .geode
         uses: actions/upload-artifact@v4
         with:
-          name: mini-globed-final
+          name: mini-globed-android
           path: "*.geode"
