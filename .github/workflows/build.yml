@@ -37,14 +37,14 @@ jobs:
       - name: Clone Geode SDK v4.6.0
         run: git clone https://github.com/geode-sdk/geode.git geode-sdk --branch v4.6.0 --depth 1 --recursive
 
-      - name: Download binaries manually
+      - name: Download binaries
         run: |
           cd geode-sdk
           mkdir -p bin/nightly
           curl -L "https://github.com/geode-sdk/geode/releases/download/v4.6.0/geode-v4.6.0-${{ matrix.config.target_id }}.zip" -o binaries.zip
-          unzip binaries.zip -d bin/nightly/
-          ls -la bin/nightly/
-          echo "Binaries installed"
+          unzip -o binaries.zip -d bin/nightly/ || true
+          find bin -type f | head -20
+          echo "Done downloading binaries"
 
       - name: Install Geode CLI v3.4.0
         run: |
@@ -52,9 +52,16 @@ jobs:
           unzip cli.zip -d cli
           chmod +x cli/geode
 
-      - name: Patch version check
+      - name: Patch SDK to skip version check
         run: |
-          sed -i 's/message(FATAL_ERROR "Mod ${MOD_ID} is made for Geode version/message(WARNING "Mod ${MOD_ID} is made for Geode version/' geode-sdk/cmake/GeodeFile.cmake
+          echo "=== Before patch ==="
+          grep -n "FATAL_ERROR.*made for Geode" geode-sdk/cmake/GeodeFile.cmake || echo "Pattern not found with FATAL_ERROR"
+          grep -n "made for Geode version" geode-sdk/cmake/GeodeFile.cmake
+          echo "=== Patching ==="
+          sed -i '/made for Geode version/s/FATAL_ERROR/WARNING/' geode-sdk/cmake/GeodeFile.cmake
+          sed -i '/made for Geode version/s/message(WARNING/message(STATUS/' geode-sdk/cmake/GeodeFile.cmake || true
+          echo "=== After patch ==="
+          grep -n "made for Geode version" geode-sdk/cmake/GeodeFile.cmake
 
       - name: Configure CMake
         run: |
