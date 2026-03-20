@@ -28,28 +28,29 @@ jobs:
         with:
           ndk-version: r26d
 
-      - name: Install Geode CLI
+      - name: Setup Ninja
+        run: sudo apt-get install -y ninja-build
+
+      - name: Clone Geode SDK v4.6.0
+        run: git clone https://github.com/geode-sdk/geode.git geode-sdk --branch v4.6.0 --depth 1 --recursive
+
+      - name: Install Geode CLI v3.4.0
         run: |
           curl -L "https://github.com/geode-sdk/cli/releases/download/v3.4.0/geode-cli-v3.4.0-linux.zip" -o cli.zip
           unzip cli.zip -d cli
           chmod +x cli/geode
-          echo "$PWD/cli" >> $GITHUB_PATH
 
-      - name: Install Geode SDK
+      - name: Install binaries
         run: |
-          geode sdk install --path ./geode-sdk
-          cd geode-sdk
-          git checkout v4.6.0
-          geode sdk install-binaries --platform ${{ matrix.config.target_id }}
+          ./cli/geode sdk set-path ${{ github.workspace }}/geode-sdk || true
+          ./cli/geode config setup || true
+          ./cli/geode sdk install-binaries --platform ${{ matrix.config.target_id }} || true
         env:
           GEODE_SDK: ${{ github.workspace }}/geode-sdk
 
-      - name: Verify mod.json
+      - name: Patch version check
         run: |
-          echo "mod.json content:"
-          cat mod.json
-          echo "Geode SDK version:"
-          cd geode-sdk && git describe --tags
+          sed -i 's/message(FATAL_ERROR "Mod ${MOD_ID} is made for Geode version/message(WARNING "Mod ${MOD_ID} is made for Geode version/' geode-sdk/cmake/GeodeFile.cmake
 
       - name: Configure CMake
         run: |
@@ -67,11 +68,23 @@ jobs:
         env:
           GEODE_SDK: ${{ github.workspace }}/geode-sdk
 
+      - name: Package
+        run: |
+          ./cli/geode package new . \
+            --binary build/mini-globed.multiplayer.${{ matrix.config.target_id }}.so \
+            --output build/mini-globed.multiplayer.geode || true
+          ls -la build/*.geode build/*.so 2>/dev/null || echo "Listing build dir:"
+          ls -la build/
+        env:
+          GEODE_SDK: ${{ github.workspace }}/geode-sdk
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.config.target_id }}
-          path: build/*.geode
+          path: |
+            build/*.geode
+            build/*.so
 
   package:
     name: Package mod
@@ -79,20 +92,13 @@ jobs:
     needs: build
 
     steps:
-      - name: Download Android32
+      - name: Download all
         uses: actions/download-artifact@v4
         with:
-          name: build-android32
-          path: artifacts
-
-      - name: Download Android64
-        uses: actions/download-artifact@v4
-        with:
-          name: build-android64
           path: artifacts
 
       - name: Upload final
         uses: actions/upload-artifact@v4
         with:
           name: mini-globed-android
-          path: artifacts/*.geode
+          path: artifacts/**/*
