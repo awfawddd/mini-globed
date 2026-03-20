@@ -19,8 +19,17 @@ jobs:
     name: Build ${{ matrix.config.name }}
     runs-on: ubuntu-latest
 
-    steps:
+   steps:
       - uses: actions/checkout@v4
+
+      - name: Clean workspace
+        run: |
+          echo "=== mod.json content ==="
+          cat mod.json
+          echo ""
+          echo "=== Checking for cached geode-sdk-clone ==="
+          ls -la geode-sdk-clone 2>/dev/null || echo "No geode-sdk-clone found"
+          rm -rf geode-sdk-clone build .sccache cpm-cache my-epic-geode-cli
 
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
