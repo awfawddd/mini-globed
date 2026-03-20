@@ -28,10 +28,11 @@ jobs:
         with:
           ndk-version: r26d
 
-      - name: Set geode version to match SDK
+      - name: Lock mod.json to prevent auto-update
         run: |
-          sed -i 's/"geode": "4.6.0"/"geode": "4.6.0"/' mod.json
+          echo "Before:"
           cat mod.json
+          chmod 444 mod.json
 
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
@@ -42,7 +43,10 @@ jobs:
           cli: v3.4.0
         env:
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
-          GEODE_DONT_UPDATE_MOD_JSON: "true"
+
+      - name: Restore mod.json permissions
+        if: always()
+        run: chmod 644 mod.json
 
   package:
     name: Package mod
