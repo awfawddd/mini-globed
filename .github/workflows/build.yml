@@ -65,17 +65,13 @@ jobs:
 
       - name: Configure CMake
         run: |
+          export PATH="$PWD/cli:$PATH"
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=${{ matrix.config.abi }} \
             -DANDROID_PLATFORM=android-24 \
             -G Ninja
-        env:
-          GEODE_SDK: ${{ github.workspace }}/geode-sdk
-
-      - name: Build
-        run: cmake --build build --config Release
         env:
           GEODE_SDK: ${{ github.workspace }}/geode-sdk
 
