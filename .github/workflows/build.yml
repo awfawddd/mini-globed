@@ -19,17 +19,11 @@ jobs:
     name: Build ${{ matrix.config.name }}
     runs-on: ubuntu-latest
 
-   steps:
+    steps:
       - uses: actions/checkout@v4
 
       - name: Clean workspace
-        run: |
-          echo "=== mod.json content ==="
-          cat mod.json
-          echo ""
-          echo "=== Checking for cached geode-sdk-clone ==="
-          ls -la geode-sdk-clone 2>/dev/null || echo "No geode-sdk-clone found"
-          rm -rf geode-sdk-clone build .sccache cpm-cache my-epic-geode-cli
+        run: rm -rf geode-sdk-clone build .sccache cpm-cache my-epic-geode-cli
 
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
@@ -43,19 +37,20 @@ jobs:
       - name: Clone Geode SDK v4.6.0
         run: git clone https://github.com/geode-sdk/geode.git geode-sdk --branch v4.6.0 --depth 1 --recursive
 
+      - name: Download binaries manually
+        run: |
+          cd geode-sdk
+          mkdir -p bin/nightly
+          curl -L "https://github.com/geode-sdk/geode/releases/download/v4.6.0/geode-v4.6.0-${{ matrix.config.target_id }}.zip" -o binaries.zip
+          unzip binaries.zip -d bin/nightly/
+          ls -la bin/nightly/
+          echo "Binaries installed"
+
       - name: Install Geode CLI v3.4.0
         run: |
           curl -L "https://github.com/geode-sdk/cli/releases/download/v3.4.0/geode-cli-v3.4.0-linux.zip" -o cli.zip
           unzip cli.zip -d cli
           chmod +x cli/geode
-
-      - name: Install binaries
-        run: |
-          ./cli/geode sdk set-path ${{ github.workspace }}/geode-sdk || true
-          ./cli/geode config setup || true
-          ./cli/geode sdk install-binaries --platform ${{ matrix.config.target_id }} || true
-        env:
-          GEODE_SDK: ${{ github.workspace }}/geode-sdk
 
       - name: Patch version check
         run: |
@@ -82,8 +77,7 @@ jobs:
           ./cli/geode package new . \
             --binary build/mini-globed.multiplayer.${{ matrix.config.target_id }}.so \
             --output build/mini-globed.multiplayer.geode || true
-          ls -la build/*.geode build/*.so 2>/dev/null || echo "Listing build dir:"
-          ls -la build/
+          ls -la build/*.geode build/*.so 2>/dev/null || ls -la build/
         env:
           GEODE_SDK: ${{ github.workspace }}/geode-sdk
 
