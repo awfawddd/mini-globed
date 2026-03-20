@@ -82,7 +82,12 @@ jobs:
           ls -la build/
           echo "=== Looking deeper ==="
           find build -maxdepth 3 -type f | grep -v CMakeFiles | head -30
-
+     - name: Build
+        run: |
+          export PATH="$PWD/cli:$PATH"
+          cmake --build build --config Release --verbose 2>&1 | tail -50
+        env:
+          GEODE_SDK: ${{ github.workspace }}/geode-sdk
       - name: Package
         run: |
           export PATH="$PWD/cli:$PATH"
