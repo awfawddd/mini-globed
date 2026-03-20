@@ -28,6 +28,11 @@ jobs:
         with:
           ndk-version: r26d
 
+      - name: Set geode version to match SDK
+        run: |
+          sed -i 's/"geode": "4.6.0"/"geode": "4.6.0"/' mod.json
+          cat mod.json
+
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
@@ -37,6 +42,7 @@ jobs:
           cli: v3.4.0
         env:
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          GEODE_DONT_UPDATE_MOD_JSON: "true"
 
   package:
     name: Package mod
